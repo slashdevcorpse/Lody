@@ -1,3 +1,4 @@
+import { AccountProfileIdSchema, AccountProfileSummarySchema } from './account-profiles';
 import { z } from 'zod';
 import {
   SESSION_FILE_MAX_COUNT,
@@ -1209,9 +1210,59 @@ export const MachineAcpCapabilitiesRefreshResponseSchema = z
   })
   .strict();
 
+export const MachineAccountProfilesRequestSchema = z
+  .object({
+    type: z.literal('machine/account-profiles'),
+    machineId: MachineIdSchema,
+    workspaceId: WorkspaceIdSchema,
+    requestId: z.string().min(1),
+    configId: AgentConfigIdSchema.optional(),
+    cliType: z.literal('builtin'),
+    agentType: z.enum(['codex', 'claude']),
+    action: z.enum(['list', 'create']),
+    label: z.string().trim().min(1).max(120).optional(),
+  })
+  .strict();
+
+export const MachineAccountProfilesResponseSchema = z
+  .object({
+    type: z.literal('machine/account-profiles_response'),
+    machineId: MachineIdSchema,
+    requestId: z.string().min(1),
+    success: z.boolean(),
+    profiles: z.array(AccountProfileSummarySchema).optional(),
+    error: z.string().optional(),
+  })
+  .strict();
+
+export const SessionAccountSwitchRequestSchema = z
+  .object({
+    type: z.literal('session/account-switch'),
+    machineId: MachineIdSchema,
+    workspaceId: WorkspaceIdSchema,
+    requestId: z.string().min(1),
+    sessionId: SessionIdSchema,
+    accountProfileId: AccountProfileIdSchema,
+  })
+  .strict();
+
+export const SessionAccountSwitchResponseSchema = z
+  .object({
+    type: z.literal('session/account-switch_response'),
+    machineId: MachineIdSchema,
+    requestId: z.string().min(1),
+    sessionId: SessionIdSchema,
+    success: z.boolean(),
+    accountProfileId: AccountProfileIdSchema.optional(),
+    continuation: z.boolean().optional(),
+    error: z.string().optional(),
+  })
+  .strict();
+
 export const MachineAcpAuthenticateRequestSchema = z
   .object({
     type: z.literal('machine/acp-authenticate'),
+    accountProfileId: AccountProfileIdSchema.optional(),
     machineId: MachineIdSchema,
     workspaceId: WorkspaceIdSchema,
     requestId: z.string().trim().min(1),
@@ -1777,6 +1828,8 @@ export const LocalSessionControlRequestSchema = z.discriminatedUnion('type', [
   MachineRestartRequestSchema,
   MachineUpgradeRequestSchema,
   MachineAcpCapabilitiesRefreshRequestSchema,
+  MachineAccountProfilesRequestSchema,
+  SessionAccountSwitchRequestSchema,
   MachineAcpAuthenticateRequestSchema,
   MachineAcpBinaryStatusRequestSchema,
   MachineAcpBinaryInstallRequestSchema,
@@ -1801,6 +1854,8 @@ export const LocalSessionControlResponseSchema = z.discriminatedUnion('type', [
   MachineRestartResponseSchema,
   MachineUpgradeResponseSchema,
   MachineAcpCapabilitiesRefreshResponseSchema,
+  MachineAccountProfilesResponseSchema,
+  SessionAccountSwitchResponseSchema,
   MachineAcpAuthenticateResponseSchema,
   MachineAcpAuthenticationProgressMessageSchema,
   MachineAcpBinaryStatusResponseSchema,
@@ -2562,6 +2617,8 @@ export const ClientToServerSchema = z.discriminatedUnion('type', [
   MachineRestartRequestSchema,
   MachineUpgradeRequestSchema,
   MachineAcpCapabilitiesRefreshRequestSchema,
+  MachineAccountProfilesRequestSchema,
+  SessionAccountSwitchRequestSchema,
   MachineAcpAuthenticateRequestSchema,
   MachineAcpBinaryStatusRequestSchema,
   MachineAcpBinaryInstallRequestSchema,
@@ -2579,6 +2636,8 @@ export const ServerToClientSchema = z.discriminatedUnion('type', [
   MachineRestartResponseSchema,
   MachineUpgradeResponseSchema,
   MachineAcpCapabilitiesRefreshResponseSchema,
+  MachineAccountProfilesResponseSchema,
+  SessionAccountSwitchResponseSchema,
   MachineAcpAuthenticateResponseSchema,
   MachineAcpAuthenticationProgressMessageSchema,
   MachineAcpBinaryStatusResponseSchema,
@@ -2596,6 +2655,8 @@ export const MachineToServerSchema = z.discriminatedUnion('type', [
   MachineRestartResponseSchema,
   MachineUpgradeResponseSchema,
   MachineAcpCapabilitiesRefreshResponseSchema,
+  MachineAccountProfilesResponseSchema,
+  SessionAccountSwitchResponseSchema,
   MachineAcpAuthenticateResponseSchema,
   MachineAcpAuthenticationProgressMessageSchema,
   MachineAcpBinaryStatusResponseSchema,
@@ -2613,6 +2674,8 @@ export const ServerToMachineSchema = z.discriminatedUnion('type', [
   MachineRestartRequestSchema,
   MachineUpgradeRequestSchema,
   MachineAcpCapabilitiesRefreshRequestSchema,
+  MachineAccountProfilesRequestSchema,
+  SessionAccountSwitchRequestSchema,
   MachineAcpAuthenticateRequestSchema,
   MachineAcpBinaryStatusRequestSchema,
   MachineAcpBinaryInstallRequestSchema,
@@ -2637,7 +2700,11 @@ export const ServerReceiveMessageSchema = z.discriminatedUnion('type', [
   MachineUpgradeResponseSchema,
   MachineAcpCapabilitiesRefreshRequestSchema,
   MachineAcpCapabilitiesRefreshResponseSchema,
+  MachineAccountProfilesRequestSchema,
+  SessionAccountSwitchRequestSchema,
   MachineAcpAuthenticateRequestSchema,
+  MachineAccountProfilesResponseSchema,
+  SessionAccountSwitchResponseSchema,
   MachineAcpAuthenticateResponseSchema,
   MachineAcpAuthenticationProgressMessageSchema,
   MachineAcpBinaryStatusRequestSchema,
@@ -2668,7 +2735,11 @@ export const ServerSendMessageSchema = z.discriminatedUnion('type', [
   MachineUpgradeResponseSchema,
   MachineAcpCapabilitiesRefreshRequestSchema,
   MachineAcpCapabilitiesRefreshResponseSchema,
+  MachineAccountProfilesRequestSchema,
+  SessionAccountSwitchRequestSchema,
   MachineAcpAuthenticateRequestSchema,
+  MachineAccountProfilesResponseSchema,
+  SessionAccountSwitchResponseSchema,
   MachineAcpAuthenticateResponseSchema,
   MachineAcpAuthenticationProgressMessageSchema,
   MachineAcpBinaryStatusRequestSchema,

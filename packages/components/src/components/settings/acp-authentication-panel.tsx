@@ -32,6 +32,7 @@ export type AcpAuthorizationDetails = Pick<
 export function AcpAuthenticationPanel({
   machineId,
   configId,
+  accountProfileId,
   cliType,
   agentType,
   customAcp,
@@ -43,6 +44,7 @@ export function AcpAuthenticationPanel({
 }: {
   machineId: MachineId | null;
   configId?: AgentConfigId;
+  accountProfileId?: string;
   cliType: AgentConfigCliType;
   agentType: string;
   customAcp?: CustomAcpLaunchSpec;
@@ -70,7 +72,16 @@ export function AcpAuthenticationPanel({
   const provider = getAcpAuthenticationAccountName(agentType);
 
   const authArgs = machineId
-    ? { machineId, configId, cliType, agentType, customAcp, runtimeOverrides, env }
+    ? {
+        machineId,
+        configId,
+        accountProfileId,
+        cliType,
+        agentType,
+        customAcp,
+        runtimeOverrides,
+        env,
+      }
     : null;
 
   const closePendingAuthorizationWindow = (): void => {

@@ -1,4 +1,10 @@
 import type {
+  MachineAccountProfilesRequest,
+  MachineAccountProfilesResponse,
+  SessionAccountSwitchRequest,
+  SessionAccountSwitchResponse,
+} from '@lody/shared';
+import type {
   AgentConfigId,
   AgentConfigCliType,
   CodeCollabV2InitDirectoryOk,
@@ -301,7 +307,14 @@ type RpcServerDeps = {
     onAcpBinaryProgress?: (message: MachineAcpBinaryProgressMessage) => void;
     signal: AbortSignal;
   }) => Promise<MachineAcpCapabilitiesRefreshResponse>;
+  accountProfiles?: (
+    args: Omit<MachineAccountProfilesRequest, 'type' | 'machineId' | 'workspaceId'>
+  ) => Promise<MachineAccountProfilesResponse>;
+  switchSessionAccount?: (
+    args: Omit<SessionAccountSwitchRequest, 'type' | 'machineId' | 'workspaceId'>
+  ) => Promise<SessionAccountSwitchResponse>;
   authenticateMachineAcp?: (args: {
+    accountProfileId?: string;
     requestId: string;
     action: 'start' | 'cancel' | 'submit-code';
     authenticationRequestId?: string;
@@ -833,6 +846,33 @@ export class LoroStreamsMachineRpcServer {
           this.acpCapabilitiesRefreshControllers.get(request.params.requestId)?.abort();
           return;
         }
+        case 'machine/account-profiles': {
+          if (!this.deps.accountProfiles) {
+            await this.appendErrorResponse(request.replyTo, request.id, request.method, {
+              code: LORO_STREAMS_RPC_ERROR_CODES.methodUnavailable,
+              message: 'Account profiles are unavailable.',
+            });
+            return;
+          }
+          const response = await this.deps.accountProfiles({
+            ...request.params,
+            configId: request.params.configId as AgentConfigId | undefined,
+          });
+          await this.appendResultResponse(request.replyTo, request.id, request.method, response);
+          return;
+        }
+        case 'session/account-switch': {
+          if (!this.deps.switchSessionAccount) {
+            await this.appendErrorResponse(request.replyTo, request.id, request.method, {
+              code: LORO_STREAMS_RPC_ERROR_CODES.methodUnavailable,
+              message: 'Account switching is unavailable.',
+            });
+            return;
+          }
+          const response = await this.deps.switchSessionAccount(request.params);
+          await this.appendResultResponse(request.replyTo, request.id, request.method, response);
+          return;
+        }
         case 'machine/acp-authenticate': {
           if (!this.deps.authenticateMachineAcp) {
             await this.appendErrorResponse(request.replyTo, request.id, request.method, {
@@ -887,6 +927,7 @@ export class LoroStreamsMachineRpcServer {
           try {
             const response = await this.deps.authenticateMachineAcp({
               requestId: request.params.requestId,
+              accountProfileId: request.params.accountProfileId,
               action: request.params.action,
               authenticationRequestId: request.params.authenticationRequestId,
               authorizationCode,
@@ -1460,6 +1501,8 @@ export class LoroStreamsMachineRpcServer {
       | MachineStatusResponse
       | MachinePingResponse
       | MachineAcpCapabilitiesRefreshResponse
+      | MachineAccountProfilesResponse
+      | SessionAccountSwitchResponse
       | MachineAcpAuthenticateResponse
       | MachineAcpAuthenticationProgressMessage
       | MachineRestartResponse

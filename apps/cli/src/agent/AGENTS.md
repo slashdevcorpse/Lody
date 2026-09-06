@@ -85,6 +85,10 @@ arrive: context/message-flow.md "Upstream".
   `resolveACPProcessLaunchAsync()`: Claude/Codex/Kimi/Grok may install Lody-managed
   native or Node-package runtimes, while DeepSeek Harness publishes an immutable
   Cordis composition before its npx launch.
+- `account-profiles.ts` resolves machine-local account ids after environment merging.
+  Missing ids mean System Default and preserve native auth/config exactly. Extra
+  Codex/Claude profiles own isolated homes, never copied native credentials; auth,
+  status and title launches use the same binding. Never fall back on a missing profile.
 - `deepseek-harness-runtime.ts` is the standard Harness-home (`DSH_HOME`, then `~/.dsh`),
   atomic-config, and npx launch wrapper around the `packages/acp-extension-dsh` submodule. It
   publishes Lody's versioned ACP composition beside (without replacing) user Harness config and

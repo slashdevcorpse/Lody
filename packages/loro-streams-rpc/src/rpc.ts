@@ -1,3 +1,16 @@
+import type {
+  MachineAccountProfilesRequest,
+  MachineAccountProfilesResponse,
+  SessionAccountSwitchRequest,
+  SessionAccountSwitchResponse,
+} from '@lody/shared';
+import {
+  AccountProfileIdSchema,
+  MachineAccountProfilesRequestSchema,
+  MachineAccountProfilesResponseSchema,
+  SessionAccountSwitchRequestSchema,
+  SessionAccountSwitchResponseSchema,
+} from '@lody/shared';
 import { z } from 'zod';
 import {
   StreamsClient,
@@ -172,6 +185,8 @@ export const LoroStreamsRpcMethodSchema = z.enum([
   'machine/upgrade',
   'machine/acp-capabilities-refresh',
   'machine/acp-capabilities-refresh-cancel',
+  'machine/account-profiles',
+  'session/account-switch',
   'machine/acp-authenticate',
   'machine/acp-binary-status',
   'machine/acp-binary-install',
@@ -288,11 +303,29 @@ export const LoroMachineAcpCapabilitiesRefreshCancelRpcRequestSchema = BaseRpcRe
     .strict(),
 }).strict();
 
+export const LoroMachineAccountProfilesRpcRequestSchema = BaseRpcRequestSchema.extend({
+  method: z.literal('machine/account-profiles'),
+  params: MachineAccountProfilesRequestSchema.omit({
+    type: true,
+    machineId: true,
+    workspaceId: true,
+  }),
+}).strict();
+export const LoroSessionAccountSwitchRpcRequestSchema = BaseRpcRequestSchema.extend({
+  method: z.literal('session/account-switch'),
+  params: SessionAccountSwitchRequestSchema.omit({
+    type: true,
+    machineId: true,
+    workspaceId: true,
+  }),
+}).strict();
+
 export const LoroMachineAcpAuthenticateRpcRequestSchema = BaseRpcRequestSchema.extend({
   method: z.literal('machine/acp-authenticate'),
   params: z
     .object({
       requestId: z.string().trim().min(1),
+      accountProfileId: AccountProfileIdSchema.optional(),
       action: z.enum(['start', 'cancel', 'submit-code']),
       authenticationRequestId: z.string().trim().min(1).optional(),
       authorizationCodeEnvelope: RpcSecretEnvelopeSchema.optional(),
@@ -568,6 +601,8 @@ export const LoroStreamsRpcRequestSchema = z.discriminatedUnion('method', [
   LoroMachineUpgradeRpcRequestSchema,
   LoroMachineAcpCapabilitiesRefreshRpcRequestSchema,
   LoroMachineAcpCapabilitiesRefreshCancelRpcRequestSchema,
+  LoroMachineAccountProfilesRpcRequestSchema,
+  LoroSessionAccountSwitchRpcRequestSchema,
   LoroMachineAcpAuthenticateRpcRequestSchema,
   LoroMachineAcpBinaryStatusRpcRequestSchema,
   LoroMachineAcpBinaryInstallRpcRequestSchema,
@@ -1418,6 +1453,8 @@ export type LoroMachineRpcResult =
   | CodeCollabV2Error
   | FilePreviewV3Response
   | MachineAcpCapabilitiesRefreshResponse
+  | MachineAccountProfilesResponse
+  | SessionAccountSwitchResponse
   | MachineAcpAuthenticateResponse
   | MachineAcpAuthenticationProgressMessage
   | MachineAcpBinaryStatusResponse
@@ -1519,6 +1556,25 @@ const toLegacyRpcErrorResponse = (
     };
   }
 
+  if (method === 'machine/account-profiles') {
+    return {
+      type: 'machine/account-profiles_response',
+      machineId: machineId as MachineAccountProfilesResponse['machineId'],
+      requestId: pingContext?.requestId ?? '',
+      success: false,
+      error: error.message,
+    };
+  }
+  if (method === 'session/account-switch') {
+    return {
+      type: 'session/account-switch_response',
+      machineId: machineId as SessionAccountSwitchResponse['machineId'],
+      requestId: pingContext?.requestId ?? '',
+      sessionId: (cancelContext?.sessionId ?? '') as SessionId,
+      success: false,
+      error: error.message,
+    };
+  }
   if (method === 'machine/acp-authenticate') {
     return {
       type: 'machine/acp-authenticate_response',
@@ -1762,6 +1818,14 @@ const parseRpcSuccessResult = async (
   if (response.method === 'machine/acp-capabilities-refresh') {
     const parsed = MachineAcpCapabilitiesRefreshResponseSchema.safeParse(response.result);
     return parsed.success ? (parsed.data as MachineAcpCapabilitiesRefreshResponse) : null;
+  }
+  if (response.method === 'machine/account-profiles') {
+    const parsed = MachineAccountProfilesResponseSchema.safeParse(response.result);
+    return parsed.success ? (parsed.data as MachineAccountProfilesResponse) : null;
+  }
+  if (response.method === 'session/account-switch') {
+    const parsed = SessionAccountSwitchResponseSchema.safeParse(response.result);
+    return parsed.success ? (parsed.data as SessionAccountSwitchResponse) : null;
   }
   if (response.method === 'machine/acp-authenticate') {
     const parsed = MachineAcpAuthenticateResponseSchema.safeParse(response.result);
@@ -2384,7 +2448,34 @@ export class LoroStreamsMachineRpcClient {
     })) as MachineAcpCapabilitiesRefreshResponse | null;
   }
 
+  async requestAccountProfiles(
+    options: Omit<MachineAccountProfilesRequest, 'type' | 'machineId' | 'workspaceId'> & {
+      timeoutMs?: number;
+    }
+  ): Promise<MachineAccountProfilesResponse | null> {
+    const { timeoutMs, ...params } = options;
+    return (await this.sendRequest({
+      method: 'machine/account-profiles',
+      timeoutMs: timeoutMs ?? 60_000,
+      params,
+    })) as MachineAccountProfilesResponse | null;
+  }
+
+  async requestSessionAccountSwitch(
+    options: Omit<SessionAccountSwitchRequest, 'type' | 'machineId' | 'workspaceId'> & {
+      timeoutMs?: number;
+    }
+  ): Promise<SessionAccountSwitchResponse | null> {
+    const { timeoutMs, ...params } = options;
+    return (await this.sendRequest({
+      method: 'session/account-switch',
+      timeoutMs: timeoutMs ?? 300_000,
+      params,
+    })) as SessionAccountSwitchResponse | null;
+  }
+
   async requestMachineAcpAuthenticate(options: {
+    accountProfileId?: string;
     requestId: string;
     action: 'start' | 'cancel' | 'submit-code';
     authenticationRequestId?: string;
@@ -2440,6 +2531,7 @@ export class LoroStreamsMachineRpcClient {
         onAcpAuthenticationProgress: onProgress,
         params: {
           requestId: options.requestId,
+          accountProfileId: options.accountProfileId,
           action: options.action,
           authenticationRequestId,
           authorizationCodeEnvelope,
@@ -2956,11 +3048,22 @@ export class LoroStreamsMachineRpcClient {
           };
         }
       | {
+          method: 'machine/account-profiles';
+          timeoutMs: number;
+          params: Omit<MachineAccountProfilesRequest, 'type' | 'machineId' | 'workspaceId'>;
+        }
+      | {
+          method: 'session/account-switch';
+          timeoutMs: number;
+          params: Omit<SessionAccountSwitchRequest, 'type' | 'machineId' | 'workspaceId'>;
+        }
+      | {
           method: 'machine/acp-authenticate';
           timeoutMs: number;
           onAcpAuthenticationProgress?: (message: MachineAcpAuthenticationProgressMessage) => void;
           params: {
             requestId: string;
+            accountProfileId?: string;
             action: 'start' | 'cancel' | 'submit-code';
             authenticationRequestId?: string;
             authorizationCodeEnvelope?: RpcSecretEnvelope;
@@ -3197,7 +3300,11 @@ export class LoroStreamsMachineRpcClient {
             }
           : undefined,
       pingContext:
-        args.method === 'machine/ping' ? { requestId: args.params.requestId } : undefined,
+        args.method === 'machine/ping' ||
+        args.method === 'machine/account-profiles' ||
+        args.method === 'session/account-switch'
+          ? { requestId: args.params.requestId }
+          : undefined,
       lifecycleContext:
         args.method === 'machine/upgrade'
           ? { requestId: args.params.requestId, targetVersion: args.params.targetVersion }
@@ -3212,6 +3319,7 @@ export class LoroStreamsMachineRpcClient {
             ? { agentType: args.params.agentType }
             : undefined,
       cancelContext:
+        args.method === 'session/account-switch' ||
         args.method === 'session/cancel' ||
         args.method === 'session/live-status' ||
         args.method === 'session/terminate'
@@ -3320,6 +3428,12 @@ export class LoroStreamsMachineRpcClient {
           request = { ...envelope, method: args.method, params: args.params };
           break;
         case 'machine/acp-capabilities-refresh':
+          request = { ...envelope, method: args.method, params: args.params };
+          break;
+        case 'machine/account-profiles':
+          request = { ...envelope, method: args.method, params: args.params };
+          break;
+        case 'session/account-switch':
           request = { ...envelope, method: args.method, params: args.params };
           break;
         case 'machine/acp-authenticate':

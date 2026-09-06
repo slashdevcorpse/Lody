@@ -1,3 +1,4 @@
+import type { AccountProfileSummary } from './account-profiles';
 import type {
   MachineId,
   ACPSessionConfig,
@@ -348,7 +349,49 @@ export interface MachineAcpAuthMethodSummary {
   args?: string[];
 }
 
+export interface MachineAccountProfilesRequest {
+  type: 'machine/account-profiles';
+  machineId: MachineId;
+  workspaceId: WorkspaceId;
+  requestId: string;
+  configId?: AgentConfigId;
+  cliType: 'builtin';
+  agentType: 'codex' | 'claude';
+  action: 'list' | 'create';
+  label?: string;
+}
+
+export interface MachineAccountProfilesResponse {
+  type: 'machine/account-profiles_response';
+  machineId: MachineId;
+  requestId: string;
+  success: boolean;
+  profiles?: AccountProfileSummary[];
+  error?: string;
+}
+
+export interface SessionAccountSwitchRequest {
+  type: 'session/account-switch';
+  machineId: MachineId;
+  workspaceId: WorkspaceId;
+  requestId: string;
+  sessionId: SessionId;
+  accountProfileId: string;
+}
+
+export interface SessionAccountSwitchResponse {
+  type: 'session/account-switch_response';
+  machineId: MachineId;
+  requestId: string;
+  sessionId: SessionId;
+  success: boolean;
+  accountProfileId?: string;
+  continuation?: boolean;
+  error?: string;
+}
+
 export interface MachineAcpAuthenticateRequest {
+  accountProfileId?: string;
   type: 'machine/acp-authenticate';
   machineId: MachineId;
   workspaceId: WorkspaceId;
@@ -640,6 +683,8 @@ export type LocalSessionControlRequest =
   | MachineRestartRequest
   | MachineUpgradeRequest
   | MachineAcpCapabilitiesRefreshRequest
+  | MachineAccountProfilesRequest
+  | SessionAccountSwitchRequest
   | MachineAcpAuthenticateRequest
   | MachineAcpBinaryStatusRequest
   | MachineAcpBinaryInstallRequest
@@ -663,6 +708,8 @@ export type LocalSessionControlResponse =
   | MachineRestartResponse
   | MachineUpgradeResponse
   | MachineAcpCapabilitiesRefreshResponse
+  | MachineAccountProfilesResponse
+  | SessionAccountSwitchResponse
   | MachineAcpAuthenticateResponse
   | MachineAcpAuthenticationProgressMessage
   | MachineAcpBinaryStatusResponse
@@ -1082,6 +1129,8 @@ export type ClientToServer =
   | MachineRestartRequest
   | MachineUpgradeRequest
   | MachineAcpCapabilitiesRefreshRequest
+  | MachineAccountProfilesRequest
+  | SessionAccountSwitchRequest
   | MachineAcpAuthenticateRequest
   | MachineAcpBinaryStatusRequest
   | MachineAcpBinaryInstallRequest;
@@ -1099,6 +1148,8 @@ export type ServerToClient =
   | MachineRestartResponse
   | MachineUpgradeResponse
   | MachineAcpCapabilitiesRefreshResponse
+  | MachineAccountProfilesResponse
+  | SessionAccountSwitchResponse
   | MachineAcpAuthenticateResponse
   | MachineAcpAuthenticationProgressMessage
   | MachineAcpBinaryStatusResponse
@@ -1116,6 +1167,8 @@ export type MachineToServer =
   | MachineRestartResponse
   | MachineUpgradeResponse
   | MachineAcpCapabilitiesRefreshResponse
+  | MachineAccountProfilesResponse
+  | SessionAccountSwitchResponse
   | MachineAcpAuthenticateResponse
   | MachineAcpAuthenticationProgressMessage
   | MachineAcpBinaryStatusResponse
@@ -1133,6 +1186,8 @@ export type ServerToMachine =
   | MachineRestartRequest
   | MachineUpgradeRequest
   | MachineAcpCapabilitiesRefreshRequest
+  | MachineAccountProfilesRequest
+  | SessionAccountSwitchRequest
   | MachineAcpAuthenticateRequest
   | MachineAcpBinaryStatusRequest
   | MachineAcpBinaryInstallRequest;

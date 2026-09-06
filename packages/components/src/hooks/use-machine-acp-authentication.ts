@@ -15,6 +15,7 @@ import type { WorkspaceRuntime } from '@/atoms/runtime';
 export type MachineAcpAuthenticationArgs = {
   machineId: MachineId;
   configId?: AgentConfigId;
+  accountProfileId?: string;
   cliType: AgentConfigCliType;
   agentType: string;
   customAcp?: CustomAcpLaunchSpec;
@@ -49,6 +50,7 @@ export function useMachineAcpAuthentication(
         requestId: args.requestId,
         action: 'cancel',
         configId: args.configId,
+        accountProfileId: args.accountProfileId,
         cliType: args.cliType,
         agentType: args.agentType,
         customAcp: args.customAcp,
@@ -84,6 +86,7 @@ export function useMachineAcpAuthentication(
         const activeAuthentication: ActiveMachineAcpAuthentication = {
           machineId: args.machineId,
           configId: args.configId,
+          accountProfileId: args.accountProfileId,
           cliType: args.cliType,
           agentType: args.agentType,
           customAcp: args.customAcp,
@@ -112,6 +115,7 @@ export function useMachineAcpAuthentication(
             requestId,
             action: 'start',
             configId: args.configId,
+            accountProfileId: args.accountProfileId,
             cliType: args.cliType,
             agentType: args.agentType,
             customAcp: args.customAcp,
@@ -175,6 +179,7 @@ export function useMachineAcpAuthentication(
         authenticationRequestId: args.authenticationRequestId,
         authorizationCode: args.authorizationCode,
         configId: args.configId,
+        accountProfileId: args.accountProfileId,
         cliType: args.cliType,
         agentType: args.agentType,
         customAcp: args.customAcp,

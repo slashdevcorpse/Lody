@@ -213,6 +213,7 @@ describe('useMachineAcpAuthentication', () => {
       machineId,
       cliType: 'builtin',
       agentType: 'claude',
+      accountProfileId: 'account-b',
       authenticationRequestId: 'auth-claude',
       authorizationCode: 'browser-code',
     });
@@ -221,6 +222,7 @@ describe('useMachineAcpAuthentication', () => {
       expect.objectContaining({
         type: 'machine/acp-authenticate',
         action: 'submit-code',
+        accountProfileId: 'account-b',
         authenticationRequestId: 'auth-claude',
         authorizationCode: 'browser-code',
       })

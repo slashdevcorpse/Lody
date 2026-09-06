@@ -182,6 +182,7 @@ describe('MessageHandler machine registration', () => {
     expect(registeredMeta.protocolCapabilities).toEqual({
       localProjectRemoval: 1,
       providerSetup: 1,
+      accountProfiles: 1,
     });
 
     await handler.cleanup();
